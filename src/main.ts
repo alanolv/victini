@@ -8,14 +8,18 @@ async function bootstrap() {
    const logger = new Logger('Main-Victini');
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('v1/');
- 
-  await app.listen(envs.port);
+ app.enableCors({
+  origin: '*',
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true,
+ });
 
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
     forbidNonWhitelisted: true,
-  }))
+  }));
 
-  logger.log(`Application is running on PORT: ${envs.port}`);
+  await app.listen(envs.port);
+  logger.log(`Server started on port ${envs.port}`);
 }
 bootstrap();
