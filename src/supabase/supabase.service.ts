@@ -61,4 +61,25 @@ export class SupabaseService {
 
     return data;
   }
+  async uploadImage(file: any): Promise<string | null> {
+    const filename = `${Date.now()}-${file.originalname.replace(/\\s+/g, '-')}`;
+    const filePath = `Products/${filename}`;
+    
+    const { error } = await this.supabase.storage
+      .from('DepositoDentalPlazasDelSol')
+      .upload(filePath, file.buffer, {
+        contentType: file.mimetype,
+      });
+
+    if (error) {
+      this.logger.error(`Error uploading image: ${error.message}`);
+      return null;
+    }
+
+    const { data: publicUrlData } = this.supabase.storage
+      .from('DepositoDentalPlazasDelSol')
+      .getPublicUrl(filePath);
+
+    return publicUrlData.publicUrl;
+  }
 }
