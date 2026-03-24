@@ -2,6 +2,8 @@ import { Injectable } from "@nestjs/common";
 import { SupabaseService } from "src/supabase/supabase.service";
 import { CreateCategoryDto } from "./dto/createCategory.dto";
 import { CreateVariantDto } from "./dto/createVariant.dto";
+import { CreateProductDto } from "./dto/createProduct.dto";
+import { CreateCompleteProductDto } from "./dto/createCompleteProduct.dto";
 
 @Injectable()
 export class ProductsService {
@@ -149,5 +151,76 @@ export class ProductsService {
         console.log(JSON.stringify(data, null, 2));
 
         return data;
+    }
+
+    async createBaseProduct(product: CreateProductDto) {
+        const { name, brand, category_id } = product;
+        const { data, error } = await this.supabaseService.client
+            .from('products')
+            .insert({ name, brand, category_id })
+            .select('product_id');
+
+        if (error) {
+            throw new Error(`Error creating base product: ${error.message}`);
+        }
+
+        console.log(JSON.stringify(data, null, 2));
+
+        return data;
+    }
+
+    async createCompleteProduct(product: CreateCompleteProductDto, file?: any) {
+        let imageUrl: string | null = null;
+
+        // If a file is provided, upload it to Supabase and get the public URL
+        if (file) {
+            const uploadedUrl = await this.supabaseService.uploadImage(file);
+            if (uploadedUrl) {
+                imageUrl = uploadedUrl;
+            } else {
+                throw new Error('Failed to upload image to Supabase');
+            }
+        }
+
+        const { name, brand, category_id, variant_name, sku, price, stock, min_stock, color, presentation, description } = product;
+
+        // 1. Create the base product
+        const { data: productData, error: productError } = await this.supabaseService.client
+            .from('products')
+            .insert({ name, brand, category_id })
+            .select()
+            .single();
+
+        if (productError) {
+            throw new Error(`Error creating base product: ${productError.message}`);
+        }
+
+        const productId = productData.id;
+
+        // 2. Create the variant using the product ID
+        const { data: variantData, error: variantError } = await this.supabaseService.client
+            .from('product_variants')
+            .insert({
+                product_id: productId,
+                sku,
+                variant_name,
+                price: Number(price),
+                stock: Number(stock),
+                min_stock: Number(min_stock),
+                color,
+                presentation,
+                image: imageUrl,
+                description
+            })
+            .select();
+
+        if (variantError) {
+            throw new Error(`Error creating variant: ${variantError.message}`);
+        }
+
+        return {
+            product: productData,
+            variant: variantData[0]
+        };
     }
 }

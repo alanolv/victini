@@ -4,6 +4,8 @@ import { ProductsService } from "./products.service";
 import { SupabaseAuthGuard } from "../supabase/supabase-auth.guard";
 import { CreateCategoryDto } from "./dto/createCategory.dto";
 import { CreateVariantDto } from "./dto/createVariant.dto";
+import { CreateProductDto } from "./dto/createProduct.dto";
+import { CreateCompleteProductDto } from "./dto/createCompleteProduct.dto";
 
 @Controller('products')
 export class ProductsController {
@@ -33,11 +35,21 @@ export class ProductsController {
         return this.productsService.createCategory(category);
     }
 
-    // @UseGuards(SupabaseAuthGuard)
-    // @Post('create-product')
-    // createProduct(@Body() product: CreateProductDto) {
-    //     return this.productsService.createProduct(product);
-    // }
+    @UseGuards(SupabaseAuthGuard)
+    @Post('create-base-product')
+    createBaseProduct(@Body() product: CreateProductDto) {
+        return this.productsService.createBaseProduct(product);
+    }
+
+    @UseGuards(SupabaseAuthGuard)
+    @Post('create-complete-product')
+    @UseInterceptors(FileInterceptor('image'))
+    createCompleteProduct(
+        @Body() product: CreateCompleteProductDto,
+        @UploadedFile() file?: any
+    ) {
+        return this.productsService.createCompleteProduct(product, file);
+    }
 
     @UseGuards(SupabaseAuthGuard)
     @Post('create-variant-product')
